@@ -84,3 +84,21 @@ export async function putBudget(categoryId: number, monthlyLimit: number): Promi
     })
     if (!res.ok) throw new Error(`budget ${res.status}`)
 }
+
+export interface HealthScore {
+    month: string
+    score: number | null
+    level: 'SOLIDA' | 'ESTABLE' | 'ATENCION' | 'EN_RIESGO' | 'SIN_DATOS'
+    savingsRate: number
+    fixedRatio: number
+    budgetsOk: number
+    budgetsTotal: number
+    components: { savings: number; budgets: number; fixedLoad: number }
+}
+
+export async function getHealth(month?: string): Promise<HealthScore> {
+    const url = month ? `${BASE}/health?month=${month}` : `${BASE}/health`
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`health ${res.status}`)
+    return res.json()
+}
