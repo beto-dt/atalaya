@@ -19,9 +19,13 @@ public class Category {
     @Column(nullable = false, length = 10)
     private Kind kind;
 
+    @Column(name = "is_fixed", nullable = false)
+    private boolean fixed;
+
     protected Category() {}
 
     public Long getId() { return id; }
     public String getName() { return name; }
     public Kind getKind() { return kind; }
+    public boolean isFixed() { return fixed; }
 }

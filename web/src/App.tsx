@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-    getCategories, getSummary, getTransactions,
-    type Category, type Summary, type Transaction,
+    getCategories, getHealth, getSummary, getTransactions,
+    type Category, type HealthScore, type Summary, type Transaction,
 } from './lib/api'
 import { AddTransaction } from './components/AddTransaction'
 import { TransactionList } from './components/TransactionList'
 import { CategoryBars } from './components/CategoryBars'
+import { HealthCard } from './components/HealthCard'
 
 const money = (n: number) =>
     n.toLocaleString('es-EC', { style: 'currency', currency: 'USD' })
@@ -25,6 +26,7 @@ export default function App() {
     const [summary, setSummary] = useState<Summary | null>(null)
     const [transactions, setTransactions] = useState<Transaction[]>([])
     const [categories, setCategories] = useState<Category[]>([])
+    const [health, setHealth] = useState<HealthScore | null>(null)
     const [error, setError] = useState(false)
 
     const shiftMonth = (delta: number) => {
@@ -34,8 +36,8 @@ export default function App() {
     }
 
     const reload = useCallback(() => {
-        Promise.all([getSummary(month), getTransactions(month)])
-            .then(([s, t]) => { setSummary(s); setTransactions(t) })
+        Promise.all([getSummary(month), getTransactions(month), getHealth(month)])
+            .then(([s, t, h]) => { setSummary(s); setTransactions(t); setHealth(h) })
             .catch(() => setError(true))
     }, [month])
 
@@ -85,6 +87,8 @@ export default function App() {
                         <Stat label="Gastos" value={summary.expense} tone="down" />
                     </section>
                 )}
+
+                {health && <HealthCard health={health} />}
 
                 {summary && <CategoryBars items={summary.byCategory} onChanged={reload} />}
 
