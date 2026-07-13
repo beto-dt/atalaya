@@ -32,5 +32,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     List<CategoryTotal> totalsByCategory(LocalDate from, LocalDate to);
 
+    @EntityGraph(attributePaths = "category")
+    List<Transaction> findByOccurredOnGreaterThanEqualAndOccurredOnLessThanOrderByOccurredOnDescIdDesc(
+            LocalDate from, LocalDate to);
 
 }

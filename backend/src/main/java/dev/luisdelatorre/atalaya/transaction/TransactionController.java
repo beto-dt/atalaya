@@ -4,9 +4,12 @@ import dev.luisdelatorre.atalaya.category.CategoryRepository;
 import dev.luisdelatorre.atalaya.transaction.TransactionDtos.CreateRequest;
 import dev.luisdelatorre.atalaya.transaction.TransactionDtos.Response;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.time.YearMonth;
 import java.util.List;
 
 @RestController
@@ -22,9 +25,15 @@ public class TransactionController {
     }
 
     @GetMapping
-    public List<Response> list() {
-        return transactions.findAllByOrderByOccurredOnDescIdDesc()
-                .stream().map(Response::from).toList();
+    public List<Response> list(
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM") YearMonth month
+    ) {
+        var items = month == null
+                ? transactions.findAllByOrderByOccurredOnDescIdDesc()
+                : transactions.findByOccurredOnGreaterThanEqualAndOccurredOnLessThanOrderByOccurredOnDescIdDesc(
+                month.atDay(1), month.plusMonths(1).atDay(1));
+        return items.stream().map(Response::from).toList();
     }
 
     @PostMapping
