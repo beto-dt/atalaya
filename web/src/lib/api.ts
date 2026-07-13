@@ -1,4 +1,62 @@
 const BASE = 'http://localhost:8080/api'
+const TOKEN_KEY = 'atalaya_token'
+
+// ---- Token management ----
+
+export function getToken(): string | null {
+    return localStorage.getItem(TOKEN_KEY)
+}
+
+export function setToken(token: string | null) {
+    if (token) localStorage.setItem(TOKEN_KEY, token)
+    else localStorage.removeItem(TOKEN_KEY)
+}
+
+let onUnauthorized: (() => void) | null = null
+
+/** App registers what to do when any request comes back 401 (token expired/invalid). */
+export function setOnUnauthorized(callback: () => void) {
+    onUnauthorized = callback
+}
+
+/** Single door for every API call: attaches the token, handles 401 globally. */
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+    const token = getToken()
+    const res = await fetch(`${BASE}${path}`, {
+        ...init,
+        headers: {
+            ...(init?.headers ?? {}),
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+    })
+    if (res.status === 401) {
+        setToken(null)
+        onUnauthorized?.()
+        throw new Error('unauthorized')
+    }
+    if (!res.ok) throw new Error(`${path} ${res.status}`)
+    if (res.status === 204) return undefined as T
+    return res.json()
+}
+
+// ---- Auth ----
+
+export async function login(email: string, password: string): Promise<void> {
+    const res = await fetch(`${BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+    })
+    if (!res.ok) throw new Error('bad_credentials')
+    const data = (await res.json()) as { token: string }
+    setToken(data.token)
+}
+
+export function logout() {
+    setToken(null)
+}
+
+// ---- Types ----
 
 export type Kind = 'EXPENSE' | 'INCOME'
 
@@ -41,50 +99,6 @@ export interface CreateTransaction {
     categoryId: number
 }
 
-export async function getSummary(month?: string): Promise<Summary> {
-    const url = month ? `${BASE}/summary?month=${month}` : `${BASE}/summary`
-    const res = await fetch(url)
-    if (!res.ok) throw new Error(`summary ${res.status}`)
-    return res.json()
-}
-
-export async function getCategories(): Promise<Category[]> {
-    const res = await fetch(`${BASE}/categories`)
-    if (!res.ok) throw new Error(`categories ${res.status}`)
-    return res.json()
-}
-
-export async function getTransactions(month?: string): Promise<Transaction[]> {
-    const url = month ? `${BASE}/transactions?month=${month}` : `${BASE}/transactions`
-    const res = await fetch(url)
-    if (!res.ok) throw new Error(`transactions ${res.status}`)
-    return res.json()
-}
-
-export async function createTransaction(body: CreateTransaction): Promise<Transaction> {
-    const res = await fetch(`${BASE}/transactions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-    })
-    if (!res.ok) throw new Error(`create ${res.status}`)
-    return res.json()
-}
-
-export async function deleteTransaction(id: number): Promise<void> {
-    const res = await fetch(`${BASE}/transactions/${id}`, { method: 'DELETE' })
-    if (!res.ok) throw new Error(`delete ${res.status}`)
-}
-
-export async function putBudget(categoryId: number, monthlyLimit: number): Promise<void> {
-    const res = await fetch(`${BASE}/budgets/${categoryId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ monthlyLimit }),
-    })
-    if (!res.ok) throw new Error(`budget ${res.status}`)
-}
-
 export interface HealthScore {
     month: string
     score: number | null
@@ -96,9 +110,40 @@ export interface HealthScore {
     components: { savings: number; budgets: number; fixedLoad: number }
 }
 
-export async function getHealth(month?: string): Promise<HealthScore> {
-    const url = month ? `${BASE}/health?month=${month}` : `${BASE}/health`
-    const res = await fetch(url)
-    if (!res.ok) throw new Error(`health ${res.status}`)
-    return res.json()
+// ---- Endpoints ----
+
+export function getSummary(month?: string): Promise<Summary> {
+    return request(month ? `/summary?month=${month}` : '/summary')
+}
+
+export function getCategories(): Promise<Category[]> {
+    return request('/categories')
+}
+
+export function getTransactions(month?: string): Promise<Transaction[]> {
+    return request(month ? `/transactions?month=${month}` : '/transactions')
+}
+
+export function createTransaction(body: CreateTransaction): Promise<Transaction> {
+    return request('/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    })
+}
+
+export function deleteTransaction(id: number): Promise<void> {
+    return request(`/transactions/${id}`, { method: 'DELETE' })
+}
+
+export function putBudget(categoryId: number, monthlyLimit: number): Promise<void> {
+    return request(`/budgets/${categoryId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ monthlyLimit }),
+    })
+}
+
+export function getHealth(month?: string): Promise<HealthScore> {
+    return request(month ? `/health?month=${month}` : '/health')
 }

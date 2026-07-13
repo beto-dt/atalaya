@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-    getCategories, getHealth, getSummary, getTransactions,
+    getCategories, getHealth, getSummary, getToken, getTransactions,
+    logout, setOnUnauthorized,
     type Category, type HealthScore, type Summary, type Transaction,
 } from './lib/api'
+import { Login } from './components/Login'
 import { AddTransaction } from './components/AddTransaction'
 import { TransactionList } from './components/TransactionList'
 import { CategoryBars } from './components/CategoryBars'
@@ -22,12 +24,17 @@ function Stat({ label, value, tone }: { label: string; value: number; tone?: 'up
 }
 
 export default function App() {
+    const [authed, setAuthed] = useState(() => getToken() != null)
     const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7))
     const [summary, setSummary] = useState<Summary | null>(null)
     const [transactions, setTransactions] = useState<Transaction[]>([])
     const [categories, setCategories] = useState<Category[]>([])
     const [health, setHealth] = useState<HealthScore | null>(null)
     const [error, setError] = useState(false)
+
+    useEffect(() => {
+        setOnUnauthorized(() => setAuthed(false))
+    }, [])
 
     const shiftMonth = (delta: number) => {
         const [y, m] = month.split('-').map(Number)
@@ -38,16 +45,18 @@ export default function App() {
     const reload = useCallback(() => {
         Promise.all([getSummary(month), getTransactions(month), getHealth(month)])
             .then(([s, t, h]) => { setSummary(s); setTransactions(t); setHealth(h) })
-            .catch(() => setError(true))
+            .catch((e) => { if (e.message !== 'unauthorized') setError(true) })
     }, [month])
 
     useEffect(() => {
-        getCategories().then(setCategories).catch(() => setError(true))
-    }, [])
-
-    useEffect(() => {
+        if (!authed) return
+        getCategories().then(setCategories).catch(() => {})
         reload()
-    }, [reload])
+    }, [authed, reload])
+
+    if (!authed) {
+        return <Login onLogged={() => setAuthed(true)} />
+    }
 
     return (
         <div className="mx-auto max-w-3xl px-6 py-10">
@@ -71,6 +80,12 @@ export default function App() {
                         className="rounded-lg border border-line px-3 py-1 text-ink-soft hover:text-accent"
                     >
                         ›
+                    </button>
+                    <button
+                        onClick={() => { logout(); setAuthed(false) }}
+                        className="ml-2 text-xs text-ink-soft hover:text-down"
+                    >
+                        salir
                     </button>
                 </div>
             </header>
