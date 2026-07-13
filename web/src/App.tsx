@@ -86,7 +86,7 @@ export default function App() {
                     </section>
                 )}
 
-                {summary && <CategoryBars items={summary.byCategory} />}
+                {summary && <CategoryBars items={summary.byCategory} onChanged={reload} />}
 
                 <AddTransaction categories={categories} onCreated={reload} />
                 <TransactionList items={transactions} onChanged={reload} />

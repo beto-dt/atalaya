@@ -7,6 +7,7 @@ export interface CategorySummary {
     name: string
     kind: Kind
     total: number
+    budget: number | null
 }
 
 export interface Summary {
@@ -15,13 +16,6 @@ export interface Summary {
     expense: number
     balance: number
     byCategory: CategorySummary[]
-}
-
-export async function getSummary(month?: string): Promise<Summary> {
-    const url = month ? `${BASE}/summary?month=${month}` : `${BASE}/summary`
-    const res = await fetch(url)
-    if (!res.ok) throw new Error(`summary ${res.status}`)
-    return res.json()
 }
 
 export interface Category {
@@ -45,6 +39,13 @@ export interface CreateTransaction {
     amount: number
     occurredOn: string
     categoryId: number
+}
+
+export async function getSummary(month?: string): Promise<Summary> {
+    const url = month ? `${BASE}/summary?month=${month}` : `${BASE}/summary`
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`summary ${res.status}`)
+    return res.json()
 }
 
 export async function getCategories(): Promise<Category[]> {
@@ -73,4 +74,13 @@ export async function createTransaction(body: CreateTransaction): Promise<Transa
 export async function deleteTransaction(id: number): Promise<void> {
     const res = await fetch(`${BASE}/transactions/${id}`, { method: 'DELETE' })
     if (!res.ok) throw new Error(`delete ${res.status}`)
+}
+
+export async function putBudget(categoryId: number, monthlyLimit: number): Promise<void> {
+    const res = await fetch(`${BASE}/budgets/${categoryId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ monthlyLimit }),
+    })
+    if (!res.ok) throw new Error(`budget ${res.status}`)
 }
