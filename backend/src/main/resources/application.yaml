@@ -18,3 +18,10 @@ management:
   endpoint:
     health:
       show-details: always
+
+atalaya:
+  jwt:
+    secret: ${ATALAYA_JWT_SECRET:dev-only-secret-change-in-prod-0123456789abcdef}
+  seed-user:
+    email: ${ATALAYA_USER_EMAIL:}
+    password: ${ATALAYA_USER_PASSWORD:}
