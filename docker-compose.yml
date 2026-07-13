@@ -16,5 +16,16 @@ services:
       timeout: 3s
       retries: 10
 
+  api:
+    build: ./backend
+    container_name: atalaya-api
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/atalaya
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   dbdata:
