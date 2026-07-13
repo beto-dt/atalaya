@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: atalaya
+  datasource:
+    url: jdbc:postgresql://localhost:5432/atalaya
+    username: atalaya
+    password: atalaya
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
